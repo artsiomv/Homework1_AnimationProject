@@ -1,422 +1,355 @@
-var moveFly = false;
-Fly.radius = 25;
-Fly.x;
-Fly.y;
-var score = 0;
+var energyNeededToClone = 10;
+var percentageRateClone = 0.005;
+var energyLoss = 0.5;
+var energyGain = 1;
 
-function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDuration, frames, loop, reverse) {
-    this.spriteSheet = spriteSheet;
-    this.startX = startX;
-    this.startY = startY;
-    this.frameWidth = frameWidth;
-    this.frameDuration = frameDuration;
-    this.frameHeight = frameHeight;
-    this.frames = frames;
-    this.totalTime = frameDuration * frames;
-    this.elapsedTime = 0;
-    this.loop = loop;
-    this.reverse = reverse;
+var socket = io.connect("http://76.28.150.193:8888");
+
+window.onload = function () {
+    socket.on("connect", function () {
+        console.log("Socket connected.")
+    });
+    socket.on("disconnect", function () {
+        console.log("Socket disconnected.")
+    });
+    socket.on("reconnect", function () {
+        console.log("Socket reconnected.")
+    });
 }
 
-Animation.prototype.drawFrame = function (tick, ctx, x, y, scaleBy) {
-    var scaleBy = scaleBy || 1;
-    this.elapsedTime += tick;
-    if (this.loop) {
-        if (this.isDone()) {
-            this.elapsedTime = 0;
+function BoundingBox(x, y, width, height) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+
+    this.left = x;
+    this.top = y;
+    this.right = this.left + width;
+    this.bottom = this.top + height;
+}
+
+BoundingBox.prototype.collide = function (oth) {
+    if (this.right >= oth.left && this.left <= oth.right && this.top < oth.bottom && this.bottom > oth.top) return true;
+    return false;
+}
+
+function Slider1(game) {
+    Entity.call(this, game, 100, 820);
+}
+Slider1.prototype = new Entity();
+Slider1.prototype.constructor = Slider1;
+
+Slider1.prototype.update = function () {
+    this.sliderBox1Less = new BoundingBox(200, 810, 45, 25);
+    this.sliderBox1More = new BoundingBox(300, 810, 45, 25);
+
+    this.sliderBox2Less = new BoundingBox(200, 850, 45, 25);
+    this.sliderBox2More = new BoundingBox(300, 850, 45, 25);
+
+    this.sliderBox3Less = new BoundingBox(200, 890, 45, 25);
+    this.sliderBox3More = new BoundingBox(300, 890, 45, 25);
+
+    this.sliderBox4Less = new BoundingBox(200, 930, 45, 25);
+    this.sliderBox4More = new BoundingBox(300, 930, 45, 25);
+
+    if (this.game.mouse) {
+        if (this.game.mouse.x > this.sliderBox1Less.left && this.game.mouse.x < this.sliderBox1Less.right &&
+                            this.game.mouse.y > this.sliderBox1Less.top && this.game.mouse.y < this.sliderBox1Less.bottom) {
+            if (this.game.click && !(energyNeededToClone <= 6)) energyNeededToClone--;
         }
-    } else if (this.isDone()) {
-        return;
+        if (this.game.mouse.x > this.sliderBox1More.left && this.game.mouse.x < this.sliderBox1More.right &&
+                            this.game.mouse.y > this.sliderBox1More.top && this.game.mouse.y < this.sliderBox1More.bottom) {
+            if (this.game.click) energyNeededToClone++;
+        }
+
+        if (this.game.mouse.x > this.sliderBox2Less.left && this.game.mouse.x < this.sliderBox2Less.right &&
+                            this.game.mouse.y > this.sliderBox2Less.top && this.game.mouse.y < this.sliderBox2Less.bottom) {
+            if (this.game.click && !(percentageRateClone <= 0)) percentageRateClone -= 0.001;
+        }
+        if (this.game.mouse.x > this.sliderBox2More.left && this.game.mouse.x < this.sliderBox2More.right &&
+                            this.game.mouse.y > this.sliderBox2More.top && this.game.mouse.y < this.sliderBox2More.bottom) {
+            if (this.game.click) percentageRateClone += 0.001;
+        }
+
+        if (this.game.mouse.x > this.sliderBox3Less.left && this.game.mouse.x < this.sliderBox3Less.right &&
+                            this.game.mouse.y > this.sliderBox3Less.top && this.game.mouse.y < this.sliderBox3Less.bottom) {
+            if (this.game.click && energyLoss > 0.1) energyLoss -= 0.1;
+        }
+        if (this.game.mouse.x > this.sliderBox3More.left && this.game.mouse.x < this.sliderBox3More.right &&
+                            this.game.mouse.y > this.sliderBox3More.top && this.game.mouse.y < this.sliderBox3More.bottom) {
+            if (this.game.click) energyLoss += 0.1;
+        }
+
+        if (this.game.mouse.x > this.sliderBox4Less.left && this.game.mouse.x < this.sliderBox4Less.right &&
+                            this.game.mouse.y > this.sliderBox4Less.top && this.game.mouse.y < this.sliderBox4Less.bottom) {
+            if (this.game.click && !(energyGain <= 0.1)) energyGain -= 0.1;
+        }
+        if (this.game.mouse.x > this.sliderBox4More.left && this.game.mouse.x < this.sliderBox4More.right &&
+                            this.game.mouse.y > this.sliderBox4More.top && this.game.mouse.y < this.sliderBox4More.bottom) {
+            if (this.game.click) energyGain += 0.1;
+        }
     }
-    var index = this.reverse ? this.frames - this.currentFrame() - 1 : this.currentFrame();
-    var vindex = 0;
-    if ((index + 1) * this.frameWidth + this.startX > this.spriteSheet.width) {
-        index -= Math.floor((this.spriteSheet.width - this.startX) / this.frameWidth);
-        vindex++;
-    }
-    while ((index + 1) * this.frameWidth > this.spriteSheet.width) {
-        index -= Math.floor(this.spriteSheet.width / this.frameWidth);
-        vindex++;
-    }
-
-    var locX = x;
-    var locY = y;
-    var offset = vindex === 0 ? this.startX : 0;
-    ctx.drawImage(this.spriteSheet,
-                  index * this.frameWidth + offset, vindex * this.frameHeight + this.startY,  // source from sheet
-                  this.frameWidth, this.frameHeight,
-                  locX, locY,
-                  this.frameWidth * scaleBy,
-                  this.frameHeight * scaleBy);
-}
-
-Animation.prototype.currentFrame = function () {
-    return Math.floor(this.elapsedTime / this.frameDuration);
-}
-
-Animation.prototype.isDone = function () {
-    return (this.elapsedTime >= this.totalTime);
-}
-
-function Background(game) {
-    Entity.call(this, game, 0, 400);
-    this.radius = 20;
-}
-
-Background.prototype = new Entity();
-Background.prototype.constructor = Background;
-
-Background.prototype.update = function () {
-}
-
-Background.prototype.draw = function (ctx) {
-    ctx.fillStyle = "SaddleBrown";
-    ctx.fillRect(0, 500, 800, 300);
-    ctx.fillRect(300, 350, 300, 40);
-    ctx.font = "18px serif";
-    ctx.fillText("Control:", 10, 50);
-    ctx.fillText("Space = jump, A = move left, D = move right, S = get down", 10, 80);
-    ctx.fillText("Q = attack, X = die (press space, A, or D to resurrect", 10, 100);
-    Entity.prototype.draw.call(this);
-}
-
-function Fly(game) {
-    this.flyAnimation = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 750, 0, 51, 29, 0.5, 2, true, false);
-    this.radius = Fly.radius;
-    Entity.call(this, game, 210, 210);
-}
-Fly.prototype = new Entity();
-Fly.prototype.constructor = Fly;
-Fly.prototype.update = function () {
-
-    Fly.x = this.x;
-    Fly.y = this.y;
-
-    if (this.flyAnimation.isDone()) {
-        this.flyAnimation.elapsedTime = 0;
-    }
-
-    var jumpDistance = this.flyAnimation.elapsedTime / this.flyAnimation.totalTime;
-    var totalHeight = 2;
-
-    if (jumpDistance > 0.5)
-        jumpDistance = 1 - jumpDistance;
-
-    var height = jumpDistance * 2 * totalHeight;
-    //var height = totalHeight * (-4 * (jumpDistance * jumpDistance - jumpDistance));
-    this.y -= height;
-    this.y = this.y + 1;
-
-    if (moveFly) {
-        moveFly = false;
-        //this.game.removeFromWorld = true;
-        this.x = Math.floor(Math.random() * (750 - 50 + 1)) + 50;
-        this.y = Math.floor(Math.random() * (210 - 400 + 1)) +400;
-        
-        // console.log('false');
-    }
-    //console.log(moveFly);
-
     Entity.prototype.update.call(this);
 }
+Slider1.prototype.draw = function (ctx) {
+    if (topArr[0] != null) {
+        ctx.fillStyle = "Blue";
+        ctx.font = "20px serif";
+        ctx.fillText("Best Rabbit" + ": " + "Kids: " + topArr[0].kids + "   Cabbage Eaten: " + topArr[0].cabbageEaten, 600, 830);
+    }
+    ctx.lineWidth = 1;
+    ctx.fillStyle = "Blue";
+    ctx.font = "20px serif";
+    ctx.fillText("Energy to breed: ", 20, 830);
+    ctx.fillStyle = "Red";
+    ctx.font = "20px serif";
+    ctx.fillText("Less", 200, 830);
+    ctx.strokeStyle = "Red";
+    ctx.strokeRect(this.sliderBox1Less.left, this.sliderBox1Less.top, 45, 25);
+    ctx.fillStyle = "Green";
+    ctx.font = "20px serif";
+    ctx.fillText("More", 300, 830);
+    ctx.strokeStyle = "Green";
+    ctx.strokeRect(this.sliderBox1More.left, this.sliderBox1More.top, 45, 25);
+    ctx.fillStyle = "Black";
+    ctx.font = "20px serif";
+    ctx.fillText(energyNeededToClone, 260, 830);
 
-Fly.prototype.draw = function (ctx) {
-    this.flyAnimation.drawFrame(this.game.clockTick, ctx, this.x-23, this.y-10);
-    Entity.prototype.draw.call(this);
+    ctx.fillStyle = "Blue";
+    ctx.font = "20px serif";
+    ctx.fillText("Food Regeneration: ", 20, 870);
+    ctx.fillStyle = "Red";
+    ctx.font = "20px serif";
+    ctx.fillText("Less", 200, 870);
+    ctx.strokeStyle = "Red";
+    ctx.strokeRect(this.sliderBox2Less.left, this.sliderBox2Less.top, 45, 25);
+    ctx.fillStyle = "Green";
+    ctx.font = "20px serif";
+    ctx.fillText("More", 300, 870);
+    ctx.strokeStyle = "Green";
+    ctx.strokeRect(this.sliderBox2More.left, this.sliderBox2More.top, 45, 25);
+    ctx.fillStyle = "Black";
+    ctx.font = "20px serif";
+    ctx.fillText(Math.round(percentageRateClone * 1000) / 1000, 250, 870);
+
+    ctx.fillStyle = "Blue";
+    ctx.font = "20px serif";
+    ctx.fillText("Energy loss: ", 20, 910);
+    ctx.fillStyle = "Red";
+    ctx.font = "20px serif";
+    ctx.fillText("Less", 200, 910);
+    ctx.strokeStyle = "Red";
+    ctx.strokeRect(this.sliderBox3Less.left, this.sliderBox3Less.top, 45, 25);
+    ctx.fillStyle = "Green";
+    ctx.font = "20px serif";
+    ctx.fillText("More", 300, 910);
+    ctx.strokeStyle = "Green";
+    ctx.strokeRect(this.sliderBox3More.left, this.sliderBox3More.top, 45, 25);
+    ctx.fillStyle = "Black";
+    ctx.font = "20px serif";
+    ctx.fillText(Math.round(energyLoss * 100) / 100, 250, 910);
+
+    ctx.fillStyle = "Blue";
+    ctx.font = "20px serif";
+    ctx.fillText("Energy gain: ", 20, 950);
+    ctx.fillStyle = "Red";
+    ctx.font = "20px serif";
+    ctx.fillText("Less", 200, 950);
+    ctx.strokeStyle = "Red";
+    ctx.strokeRect(this.sliderBox4Less.left, this.sliderBox4Less.top, 45, 25);
+    ctx.fillStyle = "Green";
+    ctx.font = "20px serif";
+    ctx.fillText("More", 300, 950);
+    ctx.strokeStyle = "Green";
+    ctx.strokeRect(this.sliderBox4More.left, this.sliderBox4More.top, 45, 25);
+    ctx.fillStyle = "Black";
+    ctx.font = "20px serif";
+    ctx.fillText(Math.round(energyGain * 100) / 100, 250, 950);
+
+
+    ctx.fillStyle = "Black";
+    ctx.font = "20px serif";
+    ctx.fillText('Legend:', 850, 50);
+    ctx.fillText('1. Rabbits eat cabbage if they touch it.', 850, 80);
+    ctx.fillText('2. Cabbage grows over time. (Food Regeneration)', 850, 100);
+    ctx.fillText('3. Rabbits lose energy over time. (Energy loss)', 850, 120);
+    ctx.fillText('4. Rabbits gain energy if they eat cabbage. (Energy gain)', 850, 140);
+    ctx.fillText('5. If rabbit has 0 energy it dies.', 850, 160);
+    ctx.fillText('6. If rabbit has enough energy it breeds. (Energy to breed)', 850, 180);
+    ctx.fillText('7. Every rabbit is getting born with 5 energy.', 850, 200);
+};
+
+function Food(game, x, y) {
+    this.color;
+    var num = Math.random();
+    if (num <= 0.3) this.color = "Black";
+    else this.color = "#00FF00";
+    this.x = x;
+    this.y = y;
+
 }
+Food.prototype = new Entity();
+Food.prototype.constructor = Food;
 
-function Link(game) {
-    this.standAnimation = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 0, 45, 79, 0.7, 2, true, false);
-    //this.sleepAnimation = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 160, 45, 79, 1.5, 2, true, false);
-    this.jumpingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 465, 75, 101, 0.24, 3, false, false);
-    this.runningAnimation = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 318, 75, 72, 0.1, 10, true, false);
-
-    this.dyingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 669, 96, 99, 0.15, 3, false, false);
-    this.dyingAnimationReversed = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 769, 96, 99, 0.1, 3, false, false);
-
-    this.deadAnimation = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 288, 742, 96, 99, 0.2, 1, true, false);
-    this.deadAnimationReversed = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 288, 842, 96, 99, 0.2, 1, true, false);
-
-    this.downAnimation = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 225, 510, 75, 56, 1, 1, true, false);
-    this.downAnimationReversed = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 225, 612, 75, 56, 1, 1, true, false);
-
-    this.standAnimationReversed = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 81, 45, 79, 0.7, 2, true, false);
-    //this.sleepAnimationReversed = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 240, 45, 79, 1.5, 2, true, false);
-    //this.jumpingAnimationReversed = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 567, 75, 101, 0.3, 3, false, false);
-    this.runningAnimationReversed = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 392, 75, 72, 0.1, 10, true, false);
-
-    this.slash2Animation = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 869, 150, 111, 0.1, 2, false, false);
-    this.slash2AnimationReversed = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 981, 150, 111, 0.1, 2, false, false);
-
-    this.slash3Animation = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 1093, 125, 93, 0.1, 2, false, false);
-    this.slash3AnimationReversed = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 1187, 125, 93, 0.1, 2, false, false);
-
-    this.slash1Animation = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 1281, 140, 86, 0.1, 2, false, false);
-    this.slash1AnimationReversed = new Animation(ASSET_MANAGER.getAsset("./img/link-blueQUICK1.png"), 0, 1368, 140, 86, 0.1, 2, false, false);
-
-    this.left = false;
-    this.sleeping = false;
-    this.running = false;
-    this.jumping = false;
-    this.down = false;
-    this.dying = false;
-    this.dead = false;
-    this.slash = false;
- 
-    this.radius = 50;
-    this.ground = 400;
-    //var rect = this.getBoundingClientRect();
-    Entity.call(this, game, 0, 423);
-}
-
-var animNum = 1;
-Link.prototype = new Entity();
-Link.prototype.constructor = Link;
-
-Link.prototype.update = function () {
-    if (this.hitFly()) {
-        //Fly.removeFromWorld = true;
-        //console.log(Fly.removeFromWorld);
-        moveFly = true;
-        //console.log(moveFly);
-            //Math.floor(Math.random() * (750 - 50 + 1)) + 50;
-        //console.log(Math.floor(Math.random() * (750 - 50 + 1)) + 50);
-        //Entity.prototype.update.call(this);
-        //this.removeFromWorld = true;
-        //this.game.lives -= 1;
-        console.log(true);
+Food.prototype.update = function () {
+    if (this.color === "Black") {
+        var num = Math.random();
+        if (num <= percentageRateClone) this.color = "#00FF00";
     }
-
-    //*************************************//
-    //****GET ORIENTATION OF MOVEMENTS*****//
-    //*************************************//
-    if (this.game.A) this.left = true;
-    if (this.game.D) this.left = false;
-
-    //*************************************//
-    //******CANCEL RUNNING ANIMATION*******//
-    //*************************************//
-    if (!this.game.D || !this.game.A) this.running = false;
-
-    //*************************************//
-    //********CANCEL DOWN ANIMATION********//
-    //*************************************//
-    if (!this.game.S) this.down = false;
-
-    //*************************************//
-    //********CANCEL DEAD ANIMATION********//
-    //*************************************//
-    if (this.game.space || this.game.A || this.game.D) this.dead = false;
-
-    //*************************************//
-    //*********START RUNNING RIGHT*********//
-    //*************************************//
-    if (this.game.D) {
-        this.left = false;
-        this.running = true;
-        this.x += 4;
-    }
-   
-    //*************************************//
-    //*********START RUNNING LEFT**********//
-    //*************************************//
-    if (this.game.A) {
-        this.left = true;
-        this.running = true;
-        this.x -= 4;
-    }
-
-    //*************************************//
-    //*********ACTIVATE JUMPING************//
-    //*************************************//
-    if (this.game.space) this.jumping = true;
-    //*************************************//
-    //*********ACTIVATE "DOWN"*************//
-    //*************************************//
-    if (this.game.S) this.down = true;
-    //*************************************//
-    //*********ACTIVATE DYING**************//
-    //*************************************//
-    if (this.game.X) this.dying = true;
-    //*************************************//
-    //*********ACTIVATE SLASH**************//
-    //*************************************//
-    if (this.game.Q) {
-        this.slash = true;
-    }
-    //*************************************//
-    //***********JUMPING LOGIC*************//
-    //*************************************//
-    if (this.jumping) {
-        if (this.jumpingAnimation.isDone()) {
-            this.jumpingAnimation.elapsedTime = 0;
-            this.jumping = false;
-        } 
-        var jumpDistance = this.jumpingAnimation.elapsedTime / this.jumpingAnimation.totalTime;
-        var totalHeight = 200;
-
-        if (jumpDistance > 0.5)
-            jumpDistance = 1 - jumpDistance;
-
-        //var height = jumpDistance * 2 * totalHeight;
-        var height = totalHeight * (-4 * (jumpDistance * jumpDistance - jumpDistance));
-        this.y = this.ground - height;
-        this.y = this.y + 23;
-        //this.sleeping = false;
-    }
-
-    //*************************************//
-    //**************DOWN LOGIC*************//
-    //*************************************//
-    if (this.down) {
-        if (this.downAnimation.isDone()) {
-            this.downAnimation.elapsedTime = 0;
-        }
-    }
-
-    //*************************************//
-    //*************DYING LOGIC*************//
-    //*************************************//
-    if (this.dying) {
-        if (this.dyingAnimation.isDone() || this.dyingAnimationReversed.isDone()) {
-            this.dead = true;
-            this.dyingAnimation.elapsedTime = 0;
-            this.dyingAnimationReversed.elapsedTime = 0;
-            this.dying = false;
-        }
-
-        if (this.left) this.x += 2;
-        if (!this.left) this.x -= 2;
-    }
-
-    //*************************************//
-    //**************DEAD LOGIC*************//
-    //*************************************//
-    if (this.dead) {
-        if (this.deadAnimation.isDone()) {
-            this.deadAnimation.elapsedTime = 0;
-            //if (this.game.space) this.dying = false;
-        }
-    }
-
-    //*************************************//
-    //***********SLASH LOGIC***************//
-    //*************************************//
-    if (this.slash) {
-        //animNum = Math.floor(Math.random() * (3 - 1 + 1)) + 1;
-        //needs optimization
-        if (this.slash1Animation.isDone() || this.slash1AnimationReversed.isDone() ||
-            this.slash2Animation.isDone() || this.slash2AnimationReversed.isDone() ||
-            this.slash3Animation.isDone() || this.slash3AnimationReversed.isDone()) {
-            this.slash1Animation.elapsedTime = 0;
-            this.slash1AnimationReversed.elapsedTime = 0
-            this.slash2Animation.elapsedTime = 0;
-            this.slash2AnimationReversed.elapsedTime = 0;
-            this.slash3Animation.elapsedTime = 0;
-            this.slash3AnimationReversed.elapsedTime = 0;
-            this.slash = false;
-            if (animNum == 3) animNum = 1;
-            else animNum++;
-        }
-    }
-
-    //*************************************//
-    //************CHECK BOUNDS*************//
-    //*************************************//
-    if (this.x <= 0) {
-        this.x = this.x + 4;
-    }
-    if (this.x >= 800-75) {   // frame width - sprite width
-        this.x = this.x - 4;
-    }
-
-    //for(var i = 0, i < this.game.Entity.ledgel; i++) {
-
-    //}
-
-    //if (isCollide(this, Background)) 
-    //if(this.x || this.y)
-        //console.log(isCollide(this, Background));
-
-
     Entity.prototype.update.call(this);
 }
+Food.prototype.draw = function (ctx) {
+    ctx.fillStyle = this.color;
+    ctx.fillRect(this.x, this.y, 5, 5);
+};
 
+function Rabbit(game, x, y) {
+    this.kids = 0;
+    this.cabbageEaten = 0;
+    this.game = game;
+    this.best = false;
+    this.box;
+    this.x = x;
+    this.y = y;
+    this.energy = 5;
+    this.direction = 0;
+};
 
-Link.prototype.draw = function (ctx) {
-    if (this.left) {
-        if (this.sleeping) {
-            //this.sleepAnimationReversed.drawFrame(this.game.clockTick, ctx, this.x, this.y+1);
+Rabbit.prototype = new Entity();
+Rabbit.prototype.constructor = Rabbit;
+
+Rabbit.prototype.collideLeft = function () {
+    return this.x <= 0;
+};
+
+Rabbit.prototype.collideRight = function () {
+    return (this.x + 5) >= 800;
+};
+
+Rabbit.prototype.collideTop = function () {
+    return this.y <= 0;
+};
+
+Rabbit.prototype.collideBottom = function () {
+    return (this.y + 5) >= 800;
+};
+
+Rabbit.prototype.update = function () {
+
+    if (topArr[0] != null && this.kids > topArr[0].kids && this.cabbageEaten > topArr[0].cabbageEaten) topArr[0] = this;
+    else if (topArr[0] == null) topArr.push(this);
+
+    if (topArr[0] === this) this.best = true;
+    else this.best = false;
+
+    if (this.energy >= energyNeededToClone) {
+        this.energy = 5;
+        var rabbit;
+        this.kids++;
+        rabbit = new Rabbit(this.game, this.x, this.y);
+        this.game.addEntity(rabbit);
+        rabbitArray.push(rabbit);
+    }
+    var changeDir = Math.random();
+    if (changeDir <= 0.50) {
+        var move = Math.random();
+        if (move <= 0.25 && !this.collideLeft()) {
+            this.x -= 5; // move left
+            this.direction = 0;
         }
-        else if (this.jumping) {
-            ctx.save();
-            ctx.scale(-1, 1);
-            this.jumpingAnimation.drawFrame(this.game.clockTick, ctx, -this.x-60, this.y - 21);
-            ctx.restore();
+        else if (move > 0.25 && move <= 0.50 && !this.collideRight()) {
+            this.x += 5; // move right
+            this.direction = 1;
         }
-        else if (this.running) {
-            this.runningAnimationReversed.drawFrame(this.game.clockTick, ctx, this.x, this.y + 5);
+        else if (move > 0.50 && move <= 0.75 && !this.collideTop()) {
+            this.y -= 5; // move down
+            this.direction = 2;
         }
-        else if (this.down) {
-            this.downAnimationReversed.drawFrame(this.game.clockTick, ctx, this.x, this.y + 23);
+        else if (move > 0.75 && !this.collideBottom()) {
+            this.y += 5; // move up
+            this.direction = 3;
         }
-        else if (this.dying) {
-            this.dyingAnimationReversed.drawFrame(this.game.clockTick, ctx, this.x, this.y-20);
-        }
-        else if (this.dead) {
-            this.deadAnimationReversed.drawFrame(this.game.clockTick, ctx, this.x, this.y + 53);
-        }
-        else if (this.slash) {
-            if (animNum == 1) this.slash1AnimationReversed.drawFrame(this.game.clockTick, ctx, this.x - 79, this.y - 7); //OK
-            if (animNum == 2) this.slash2AnimationReversed.drawFrame(this.game.clockTick, ctx, this.x - 81, this.y - 32); //OK
-            if (animNum == 3) this.slash3AnimationReversed.drawFrame(this.game.clockTick, ctx, this.x - 77, this.y - 5); //OK
-        }
-        else {
-            this.standAnimationReversed.drawFrame(this.game.clockTick, ctx, this.x, this.y);
-        }
+    } else {
+        if (this.direction === 0 && !this.collideLeft()) this.x -= 5;
+        else if (this.direction === 1 && !this.collideRight()) this.x += 5;
+        else if (this.direction === 2 && !this.collideTop()) this.y -= 5;
+        else if (this.direction === 3 && !this.collideBottom()) this.y += 5;
+    }
+
+    if (foodArray[this.x * 32 + this.y / 5].color === "#00FF00") {
+        this.energy += energyGain;
+        this.cabbageEaten++;
+        foodArray[this.x * 32 + this.y / 5].color = "Black";
     }
     else {
-        if (this.sleeping) {
-            //this.sleepAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y);
-        }
-        else if (this.jumping) {
-            this.jumpingAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y - 21);
-        }
-        else if (this.running) {
-            this.runningAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y + 5);
-        }
-        else if (this.down) {
-            this.downAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y + 23);
-        }
-        else if (this.dying) {
-            this.dyingAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y-20);
-        }
-        else if (this.dead) {
-            this.deadAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y + 53);
-        }
-        else if (this.slash) {
-            if (animNum == 1) this.slash1Animation.drawFrame(this.game.clockTick, ctx, this.x - 15, this.y - 7); //OK
-            if (animNum == 2) this.slash2Animation.drawFrame(this.game.clockTick, ctx, this.x - 22, this.y - 32); //OK
-            if (animNum == 3) this.slash3Animation.drawFrame(this.game.clockTick, ctx, this.x, this.y - 5); //OK
-        }
-        else {
-            this.standAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y);
-        }
+        if (!(this.energy <= 0)) this.energy -= energyLoss;
+        else this.removeFromWorld = true;
+        if (this.best) topArr = [];
     }
-    Entity.prototype.draw.call(this);
-}
-// the "main" code begins here
+    Entity.prototype.update.call(this);
 
-Link.prototype.hitFly = function () {
-    return ((this.y <= Fly.y + 29 && this.y >= Fly.y ||
-    this.y + 101 <= Fly.y + 29 && this.y + 101 >= Fly.y) &&
-    (this.x + 75 >= Fly.x && this.x + 75 <= Fly.x + 51 ||
-    this.x >= Fly.x && this.x <= Fly.x + 51));
-}
 
+    var that = this;
+    var save = document.getElementById('save');
+    var load = document.getElementById('load');
+    var stateName = document.getElementById('csave');
+    var loadName = document.getElementById('cload');
+
+    save.onclick = function () {
+        that.game.test = SaveState(this.game);
+        if (stateName === '') return;
+        console.log(stateName.value);
+        socket.emit("save", { studentname: "Artsiom Vainilovich", statename: stateName.value, data: that.game.test });
+        stateName.value = '';
+    };
+
+    load.onclick = function () {
+        if (loadName === '') return;
+
+        socket.emit("load", { studentname: "Artsiom Vainilovich", statename: loadName.value });
+        loadName.value = '';
+    };
+};
+
+Rabbit.prototype.draw = function (ctx) {
+    if (this.best) {
+        ctx.fillStyle = "Red";
+        ctx.fillRect(this.x, this.y, 5, 5);
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 3;
+            ctx.strokeRect(this.x-10, this.y-10, 20, 20);
+    } else {
+        ctx.fillStyle = "Gray";
+        ctx.fillRect(this.x, this.y, 5, 5);
+
+    }
+};
+
+function SaveState(game) {
+    var temp = [];
+    temp.push(energyNeededToClone);
+    temp.push(energyLoss);
+    temp.push(energyGain);
+    temp.push(percentageRateClone);
+    return temp;
+};
+
+function LoadState(game) {
+    var temp = game.tempData;
+    energyNeededToClone = temp[0];
+    energyLoss = temp[1];
+    energyGain = temp[2];
+    percentageRateClone = temp[3];
+};
+
+var topArr = [];
+var foodArray = [];
+var rabbitArray = [];
 var ASSET_MANAGER = new AssetManager();
 
-ASSET_MANAGER.queueDownload("./img/link-blueQUICK1.png");
+ASSET_MANAGER.queueDownload("./img/white.png");
+
 
 ASSET_MANAGER.downloadAll(function () {
     console.log("starting up da sheild");
@@ -424,16 +357,39 @@ ASSET_MANAGER.downloadAll(function () {
     var ctx = canvas.getContext('2d');
 
     var gameEngine = new GameEngine();
-    var bg = new Background(gameEngine);
-    var fly = new Fly(gameEngine);
-    var link = new Link(gameEngine);
-    
 
-    gameEngine.addEntity(bg);
-    gameEngine.addEntity(fly);
-    gameEngine.addEntity(link);
-    
- 
+    var food;
+    for (var i = 0; i < 160; i++) {
+        for (var j = 0; j < 160; j++) {
+            food = new Food(gameEngine, i*5, j*5);
+            gameEngine.addEntity(food);
+            foodArray.push(food);
+        }
+    }
+    gameEngine.foodArray = foodArray;
+
+    var rabbit;
+    for (var i = 0; i < 50; i++) {
+        rabbit = new Rabbit(gameEngine, (Math.floor(Math.random() * (160 - 0) + 0))*5, (Math.floor(Math.random() * (160 - 0) + 0))*5);
+        gameEngine.addEntity(rabbit);
+        rabbitArray.push(rabbit);
+    }
+    gameEngine.rabbitArray = rabbitArray;
+
+
+    var slider = new Slider1(gameEngine);
+    gameEngine.slider = slider;
+    gameEngine.addEntity(slider);
+
+    socket.on("ping", function (ping) {
+        console.log(ping);
+        socket.emit("pong");
+    });
+    socket.on("load", function (data) {
+        gameEngine.tempData = data.data;
+        LoadState(gameEngine);
+    });
+
     gameEngine.init(ctx);
     gameEngine.start();
 });

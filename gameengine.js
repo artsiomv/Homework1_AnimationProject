@@ -1,4 +1,5 @@
 // This game shell was happily copied from Googler Seth Ladd's "Bad Aliens" game and his Google IO talk in 2011
+
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
             window.webkitRequestAnimationFrame ||
@@ -56,48 +57,49 @@ GameEngine.prototype.start = function () {
     })();
 }
 
-
-
 GameEngine.prototype.startInput = function () {
     console.log('Starting input');
     var that = this;
-    var currentKey;
 
+    var getXandY = function (e) {
+        var x = e.clientX - that.ctx.canvas.getBoundingClientRect().left;
+        var y = e.clientY - that.ctx.canvas.getBoundingClientRect().top;
 
-    this.ctx.canvas.addEventListener("keydown", function (e) {
-        if (!(currentKey == String.fromCharCode(e.which))) {
-            if (String.fromCharCode(e.which) === 'Z') that.Z = true;
-            if (String.fromCharCode(e.which) === 'X') that.X = true;
-            if (e.keyCode == 32) that.space = true;
+        return { x: x, y: y };
+    }
 
-            if (String.fromCharCode(e.which) === 'S') that.S = true;
+    this.ctx.canvas.addEventListener("mousemove", function (e) {
+        //console.log(getXandY(e));
+        that.mouse = getXandY(e);
+    }, false);
 
-            if (String.fromCharCode(e.which) === 'D') that.D = true;
-            if (String.fromCharCode(e.which) === 'A') that.A = true;
-            if (String.fromCharCode(e.which) === 'Q') that.Q = true;
-            currentKey = String.fromCharCode(e.which);
-        }
+    this.ctx.canvas.addEventListener("click", function (e) {
+        //console.log(getXandY(e));
+        that.click = getXandY(e);
+    }, false);
+
+    this.ctx.canvas.addEventListener("wheel", function (e) {
+        //console.log(getXandY(e));
+        that.wheel = e;
+        //       console.log(e.wheelDelta);
         e.preventDefault();
     }, false);
 
-    this.ctx.canvas.addEventListener("keyup", function (e) {
-        if (e.keyCode == 32) that.space = false;
-        if (String.fromCharCode(e.which) === 'X') that.X = false;
-        if (String.fromCharCode(e.which) === 'Z') that.Z = false;
-        if (String.fromCharCode(e.which) === 'S') that.S = false;
-
-        if (String.fromCharCode(e.which) === 'D') that.D = false;
-        if (String.fromCharCode(e.which) === 'A') that.A = false;
-        if (String.fromCharCode(e.which) === 'Q') that.Q = false;
-        currentKey = null;
+    this.ctx.canvas.addEventListener("contextmenu", function (e) {
+        //console.log(getXandY(e));
+        that.rightclick = getXandY(e);
         e.preventDefault();
     }, false);
+
     console.log('Input started');
 }
 
 GameEngine.prototype.addEntity = function (entity) {
-    console.log('added entity');
+    //console.log('added entity');
     this.entities.push(entity);
+}
+GameEngine.prototype.removeAllEntities = function () {
+    this.entities = [];
 }
 
 GameEngine.prototype.draw = function () {
@@ -131,13 +133,9 @@ GameEngine.prototype.loop = function () {
     this.clockTick = this.timer.tick();
     this.update();
     this.draw();
-    this.space = null;
-    //this.Z = null;
-    //this.X = null;
-    //this.S = null;
-    //this.D = null;
-    //this.A = null;
-    //this.W = null;
+    this.click = null;
+    this.rightclick = null;
+    this.wheel = null;
 }
 
 function Entity(game, x, y) {

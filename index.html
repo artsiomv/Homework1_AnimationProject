@@ -3,12 +3,27 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Game Project Shell</title>
-    <script type="text/javascript" src="./gameengine.js"></script>
+    <title>Rabbit Population</title>
+    <script type="text/javascript" src="http://76.28.150.193:8888/socket.io/socket.io.js"></script>
     <script type="text/javascript" src="./assetmanager.js"></script>
+    <script type="text/javascript" src="./gameengine.js"></script>
     <script type="text/javascript" src="./main.js"></script>
 </head>
 <body>
-    <canvas id="gameWorld" tabindex="1" width="800" height="800" style="border: 1px solid brown; background: lightskyblue"></canvas>
+    <canvas id="gameWorld" width="1400" height="1000" style="border: 1px solid white"></canvas>
+    <div style="position: absolute; left: 400px; top: 900px; height: 30px; ">
+
+        <form>
+            <div>
+                <input type="text" id="csave" />
+                <button type="button" id="save" type="submit" />Save State<br />
+            </div>
+            <div>
+                <input type="text" id="cload" />
+                <button type="button" id="load" type="submit" />Load State<br />
+            </div>
+
+        </form>
+    </div>
 </body>
 </html>
